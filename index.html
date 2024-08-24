@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="micropython.mjs" type="module"></script>
+    <link rel="stylesheet" href="node_modules/@xterm/xterm/css/xterm.css" />
+      <script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
+      <script type="text/javascript" src="amy.js"></script>
+      <script language="javascript">
+        var web_audio_buffer = null;
+        var amy_play_message = null;
+        var amy_web_start = null;
+        var amy_module = null;
+        var AMY_SAMPLE_RATE = 44100;
+
+        // Once AMY module is loaded, do...
+        amyModule().then(function(am) {
+          amy_module = am;
+          web_audio_buffer = amy_module.cwrap(
+            'web_audio_buffer', 'number', ['number', 'number']        
+          );
+          amy_play_message = amy_module.cwrap(
+            'amy_play_message', null, ['string']
+          );
+          amy_web_start = amy_module.cwrap(
+            'amy_web_start', null, null
+          );
+          amy_web_start();
+        });
+
+
+        var dataHeap = null;
+        var dataPtr = null;
+        var data = new Float32Array();
+
+        // l and r are float arrays for the left and right channels that need to be filled
+        function audioCallback(l,r) {
+          // lazy loading of the audio buffer we use to talk to c++/emscripten
+          if(dataHeap == null) {
+            data = new Float32Array(l.length*2);
+            // Get data byte size, allocate memory on Emscripten heap, and get pointer
+            var nDataBytes = data.length * data.BYTES_PER_ELEMENT;
+            dataPtr = amy_module._malloc(nDataBytes);
+
+            // Copy data to Emscripten heap (directly accessed from Module.HEAPU8)
+            dataHeap = new Uint8Array(amy_module.HEAPU8.buffer, dataPtr, nDataBytes);
+            dataHeap.set(new Uint8Array(data.buffer));
+          }
+
+          // now we actually call the C++
+          web_audio_buffer(dataHeap.byteOffset, l.length);
+
+          // turn the emscripten heap array to something we can work with in javascript
+          // allocating on the audio thread, I know!
+          var result = new Float32Array(dataHeap.buffer, dataHeap.byteOffset, data.length);
+
+          // deinterleave the result
+          for(i = 0; i < l.length; i++) {
+            l[i] = result[i*2];
+            r[i] = result[i*2+1];
+          }
+        } 
+
+
+        var audioRunning = false;
+        var scriptNode = null;
+        var source = null;
+        var audioCtx = null;
+
+        function setupAudio(fn) {
+          // Create AudioContext and buffer source
+          var AudioContext = window.AudioContext // Default
+            || window.webkitAudioContext // Safari and old versions of Chrome
+            || false; 
+          
+            if (!AudioContext) {
+                // Do whatever you want using the Web Audio API
+                alert("Sorry, but the Web Audio API is not supported by your browser.");
+            }
+          // create a context with the sample rate compiled into amy.wasm
+          audioCtx = new AudioContext({sampleRate: AMY_SAMPLE_RATE});
+          source = audioCtx.createBufferSource();
+
+          // buff size, ins, outs
+          scriptNode = audioCtx.createScriptProcessor(256, 0, 2);
+          scriptNode.onaudioprocess = function(audioProcessingEvent) {
+            fn(audioProcessingEvent.outputBuffer.getChannelData(0), audioProcessingEvent.outputBuffer.getChannelData(1)); 
+          };
+        }
+        
+        // Called from first click anywhere on DOM
+        function startAudio() {
+          if(audioRunning) return;
+          setupAudio(audioCallback);
+          scriptNode.connect(audioCtx.destination);
+          source.start();
+          audioRunning = true;
+        }
+      </script>
+    </head>
+    <body>
+      
+      <script type="module">
+        const term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955'  }});
+        term.open(document.getElementById('terminal'));
+        const stdoutWriter = (line) => {
+          term.write(line);
+         };
+        const mp = await loadMicroPython({stdout:stdoutWriter, linebuffer: false});
+        await mp.registerJsModule('amy_js_message', amy_play_message);
+        await mp.runPythonAsync(`
+            import amy, amy_js_message
+            amy.override_send = amy_js_message
+        `);
+        await mp.replInit();
+
+        term.onKey(e => {
+          mp.replProcessChar(e.key.charCodeAt(0)); 
+        });
+
+      </script>
+
+      <div id="content">
+        <h1>Web <A HREF="https://github.com/shorepine/amy">AMY</A> REPL</h1>
+      </div>
+      
+      <div id="terminal"></div>
+
+      <script language="javascript">
+        document.body.addEventListener('click', startAudio, true); 
+    </script>
+    </body>
+</html>
+
+
