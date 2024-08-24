@@ -110,12 +110,17 @@
             term.write(line);
           }
          };
-        const mp = await loadMicroPython({stdout:stdoutWriter, linebuffer: false});
+        const mp = await loadMicroPython({
+          stdout:stdoutWriter, 
+          linebuffer: false,
+          pystack: 8 * 1024, 
+          heapsize: 2 * 1024 * 1024
+        });
         await mp.registerJsModule('amy_js_message', amy_play_message);
         await mp.runPythonAsync(`
-            from upysh import *
             import amy, amy_js_message
             amy.override_send = amy_js_message
+            from upysh import *
         `);
         await mp.replInit();
 
