@@ -104,11 +104,16 @@
         const term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955'  }});
         term.open(document.getElementById('terminal'));
         const stdoutWriter = (line) => {
-          term.write(line);
+          if(line[0]==10) {
+            term.writeln([0]);
+          } else {
+            term.write(line);
+          }
          };
         const mp = await loadMicroPython({stdout:stdoutWriter, linebuffer: false});
         await mp.registerJsModule('amy_js_message', amy_play_message);
         await mp.runPythonAsync(`
+            from upysh import *
             import amy, amy_js_message
             amy.override_send = amy_js_message
         `);
