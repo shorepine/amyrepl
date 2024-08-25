@@ -104,9 +104,9 @@
           amy.override_send = amy_js_message
           from upysh import *
           # AMY bleep 
-          amy.send(freq=220, vel=1, pan=0.9);
-          amy.send(freq=440, vel=1, pan=0.1, time=150);
-          amy.send(vel=0, time=300, pan=0.5);
+          amy.send(freq=220, vel=1, pan=0.9, time=100);
+          amy.send(freq=440, vel=1, pan=0.1, time=250);
+          amy.send(vel=0, time=400, pan=0.5);
         `);
         mp.replInit();
       }
