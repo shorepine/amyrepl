@@ -103,7 +103,7 @@
           import amy, amy_js_message
           amy.override_send = amy_js_message
           from upysh import *
-          # AMY bleep 
+          # AMY bleep (start it 100ms from now to give audio time to start)
           amy.send(freq=220, vel=1, pan=0.9, time=100);
           amy.send(freq=440, vel=1, pan=0.1, time=250);
           amy.send(vel=0, time=400, pan=0.5);
@@ -118,6 +118,8 @@
       term.writeln("Tap in the terminal window here to start...");
       term.open(document.getElementById('terminal'));
       const stdoutWriter = (line) => {
+        // While it's called line, it's always one char, line[0].
+        // Writing a 10 to xterm does LF but not CR, so we use its writeln to LFCR
         if(line[0]==10) {
           term.writeln([0]);
         } else {
@@ -141,8 +143,10 @@
     </div>
       
     <div id="terminal"></div>
-      <script language="javascript">
-        document.body.addEventListener('click', startAudio, true); 
+    <script language="javascript">
+      // Start the audio onclick (as required)
+      // Also start the REPL, after audio is started (otherwise python gets confused about AMY)
+      document.body.addEventListener('click', startAudio, true); 
     </script>
 
   </body>
