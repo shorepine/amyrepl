@@ -11,30 +11,38 @@
       var amy_play_message = null;
       var amy_web_start = null;
       var amy_module = null;
+      var filter = null;
       var AMY_SAMPLE_RATE = 44100;
       var mp = null;
-
+      var term = null;
+      
       // Once AMY module is loaded, do...
       amyModule().then(function(am) {
         amy_module = am;
+        /*
         web_audio_buffer = amy_module.cwrap(
           'web_audio_buffer', 'number', ['number', 'number']        
         );
+        */
+        filter = amy_module.cwrap(
+          'filter', null, null
+        );  
         amy_play_message = amy_module.cwrap(
           'amy_play_message', null, ['string']
         );
         amy_web_start = amy_module.cwrap(
-          'amy_web_start', null, null
+          'amy_web_start', null, ['number']
         );
-        amy_web_start();
+        amy_web_start(1);
       });
-
-
+      
+      /*
       var dataHeap = null;
       var dataPtr = null;
       var data = new Float32Array();
-
+      */
       // l and r are float arrays for the left and right channels that need to be filled
+      /*
       function audioCallback(l,r) {
         // lazy loading of the audio buffer we use to talk to c++/emscripten
         if(dataHeap == null) {
@@ -61,13 +69,14 @@
           r[i] = result[i*2+1];
         }
       } 
-
+      */
 
       var audioRunning = false;
       var scriptNode = null;
       var source = null;
       var audioCtx = null;
-
+      var oscillatorNode, audioWorkletNode;
+      /*
       function setupAudio(fn) {
         // Create AudioContext and buffer source
         var AudioContext = window.AudioContext // Default
@@ -88,38 +97,70 @@
           fn(audioProcessingEvent.outputBuffer.getChannelData(0), audioProcessingEvent.outputBuffer.getChannelData(1)); 
         };
       }
-      
+      */
+  
+      configureAudioGraph = async ()=> {    
+        //  AudioWorkletNode and its associated AudioWorkletProcessor
+
+        await audioCtx.audioWorklet.addModule(WorkletProcessor());
+        filterWorkletNode = new AudioWorkletNode(audioCtx, 'workletprocessor');
+        //filterWorkletNode.port.postMessage(filter);
+        filterWorkletNode.connect(audioCtx.destination);
+      }
+
+
       // Called from first click anywhere on DOM
-      function startAudio() {
-        if(audioRunning) return;
+      //function startAudio() {
+      //  if(audioRunning) return;
+      //  audioCtx = new AudioContext();
+      //  await configureAudioGraph(audioCtx);
+
+        /*
         setupAudio(audioCallback);
         scriptNode.connect(audioCtx.destination);
         source.start();
-        audioRunning = true;
+        */
 
+      //  audioRunning = true;
 
+      //}
+      function bootrepl() {
         mp.registerJsModule('amy_js_message', amy_play_message);
         mp.runPythonAsync(`
           import amy, amy_js_message
           amy.override_send = amy_js_message
           from upysh import *
+          cd('home/web_user')
           # AMY bleep (start it 100ms from now to give audio time to start)
           amy.send(freq=220, vel=1, pan=0.9, time=100);
           amy.send(freq=440, vel=1, pan=0.1, time=250);
           amy.send(vel=0, time=400, pan=0.5);
         `);
+        term.clear();
         mp.replInit();
       }
+
+      window.onload = () => {
+        document.body.addEventListener('click', async (evt)=>{
+          if ( audioCtx === null ) {
+            audioCtx = new AudioContext();
+            await configureAudioGraph(audioCtx);
+            bootrepl();
+          }
+        }, false);
+      }
+      //document.body.addEventListener('click', startAudio, true);
+
     </script>
   </head>
   <body>
     <script type="module">
-      const term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955'  }});
-      term.writeln("Tap in the terminal window here to start...");
+      term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955' /* tulip teal */  }});
+      term.writeln("Tap or click in this window to start...");
       term.open(document.getElementById('terminal'));
       const stdoutWriter = (line) => {
         // While it's called line, it's always one char, line[0].
-        // Writing a 10 to xterm does LF but not CR, so we use its writeln to LFCR
+        // Writing a 10 to xtermjs does LF but not CR, so we use its writeln to LFCR
         if(line[0]==10) {
           term.writeln([0]);
         } else {
@@ -130,7 +171,7 @@
         stdout:stdoutWriter, 
         linebuffer: false,
         pystack: 8 * 1024, 
-        heapsize: 2 * 1024 * 1024
+        heapsize: 2 * 1024 * 1024 // tulip's heap
       });
 
       term.onKey(e => {
@@ -143,12 +184,13 @@
     </div>
       
     <div id="terminal"></div>
+    <!--
     <script language="javascript">
       // Start the audio onclick (as required)
       // Also start the REPL, after audio is started (otherwise python gets confused about AMY)
       document.body.addEventListener('click', startAudio, true); 
     </script>
-
+    -->
   </body>
 </html>
 
