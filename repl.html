@@ -14,7 +14,7 @@
   <body>
     <script type="module">
       // Tulip settings
-      term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955'  }});
+      term = new Terminal({rows:40, cols:100, fontSize:12, theme: { background: '#004955'  }});
       term.writeln("Tap in the terminal window here to start...");
       term.open(document.getElementById('terminal'));
       const stdoutWriter = (line) => {
