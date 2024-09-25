@@ -1,121 +1,18 @@
 <!doctype html>
 <html>
   <head>
-    <script src="micropython.mjs" type="module"></script>
-    <link rel="stylesheet" href="xterm.css" />
-    <script type="text/javascript" src="enable-threads.js"></script>
-    <script type="text/javascript" src="xterm.js"></script>
-
-    <script type="text/javascript" src="amy.js"></script>
-    <script language="javascript">
-      var amy_play_message = null;
-      var amy_live_start = null;
-      var amy_module = null;
-      var repl_started = false;
-
-      var mp = null;
-      var term = null
-
-      // Once AMY module is loaded, do...
-      amyModule().then(async function(am) {
-        amy_module = am;
-        amy_live_start = amy_module.cwrap(
-          'amy_live_start', null, null, {async: true}    
-        );
-        amy_start = amy_module.cwrap(
-          'amy_start', null, ['number', 'number', 'number']
-        );
-        amy_play_message = amy_module.cwrap(
-          'amy_play_message', null, ['string']
-        );
-        amy_start(1,1,1,1);
-      });
-
-      async function start_repl() {
-        // Let micropython call an exported AMY function
-        await mp.registerJsModule('amy_js_message', amy_play_message);
-
-        mp.registerJsModule("time", {
-          sleep: async (s) => await new Promise((r) => setTimeout(r, s * 1000)),
-        });
-
-
-
-        // Set up the micropython repl, like _boot.py. 
-        await mp.runPythonAsync(`
-          import amy, amy_js_message, time
-          amy.override_send = amy_js_message
-          from upysh import *
-          cd('home/web_user')
-        `);
-
-
-        // Clear the terminal
-        await term.clear();
-
-        // Tell MP to start serving a REPL
-        await mp.replInit();
-
-        /*
-        mp.runPythonAsync(`
-          amy.send(freq=220, vel=1, pan=0.9, time=0)
-          amy.send(freq=440, vel=1, pan=0.1, time=150)
-          amy.send(vel=0, time=300, pan=0.5)
-          amy.send(reset=0, time=350)
-        `);
-        */
-        repl_started = true;
-      }
-
-      // Called from first click anywhere on DOM
-      async function start_repl_and_audio() {
-        // Don't run this twice
-        if(repl_started) return;
-        // Start the audio worklet (miniaudio)
-        await amy_live_start();
-        await start_repl();
-      }
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous"> 
   </head>
   <body>
-    <script type="module">
-      term = new Terminal({rows:50, cols:128, fontSize:12, theme: { background: '#004955'  }});
-      term.writeln("Tap in the terminal window here to start...");
-      term.open(document.getElementById('terminal'));
-      const stdoutWriter = (line) => {
-        // While it's called line, it's always one char, line[0].
-        // Writing a 10 to xterm does LF but not CR, so we use its writeln to LFCR
-        if(line[0]==10) {
-          term.writeln([0]);
-        } else {
-          term.write(line);
-        }
-      };
-
-      mp = await loadMicroPython({
-        stdout:stdoutWriter, 
-        linebuffer: false,
-        pystack: 8 * 1024, 
-        heapsize: 2 * 1024 * 1024
-      });
-
-
-      term.onKey(e => {
-        var code = e.key.charCodeAt(0);
-        mp.replProcessCharWithAsyncify(code).then((response) => {
-        });
-      });
-    </script>
-
-    <div id="content">
-      <h1>Web <A HREF="https://github.com/shorepine/amy">AMY</A> REPL</h1>
+    <div class="container-fluid px-5 my-5">
+      <h1>Web <A HREF="https://github.com/shorepine/amy">AMY</A> REPL demos</h1>
+      <ul>
+        <li><A href="repl.html">Tulip-like full REPL demo with AMY running</A></li>
+        <li><A href="notebook.html">Editable py-notebook demo with AMY</A></li>
+      </ul>
     </div>
-      
-    <div id="terminal"></div>
-    <script language="javascript">
-      // On click anywhere, start audio and the REPL, after audio is started (otherwise python gets confused about AMY)
-      document.body.addEventListener('click', start_repl_and_audio, true); 
-    </script>
 
   </body>
 </html>
