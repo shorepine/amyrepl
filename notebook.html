@@ -15,7 +15,7 @@
       var amy_live_start = null;
       var amy_reset_sysclock = null
       var amy_module = null;
-      var repl_started = false;
+      var everything_started = false;
 
       var mp = null;
 
@@ -50,40 +50,40 @@
           import amy, amy_js_message, time
           amy.override_send = amy_js_message
         `);
-        repl_started = true;
       }
 
       async function start_repl_and_audio() {
         // Don't run this twice
-        if(repl_started) return;
+        if(everything_started) return;
         // Start the audio worklet (miniaudio)
         await amy_live_start();
         await start_repl();
+        // Wait 200ms on first run only before playing amy commands back to avoid clicks
+        await new Promise((r) => setTimeout(r, 200));
+        everything_started = true;
       }
 
       async function resetAMY() {
-        if(repl_started) {
+        if(everything_started) {
           await mp.runPythonAsync('amy.reset()\n');
         }
       }      
 
       async function runCodeBlock(index) {
-        if(!repl_started) await start_repl_and_audio();
-        if(repl_started) {
-          var py = editors[index].getValue();
-          console.log(py)
-          amy_reset_sysclock();
-          await mp.runPythonAsync(py);
-        }
+        if(!everything_started) await start_repl_and_audio();
+        var py = editors[index].getValue();
+        console.log(py)
+        amy_reset_sysclock();
+        await mp.runPythonAsync(py);
       }
     </script>
   </head>
   <body>
     <script type="module">
+      // Print python messages to console for now. use the REPL if you want more
       const stdoutWriter = (line) => {
         console.log(line);
       };
-
       mp = await loadMicroPython({
         stdout:stdoutWriter, 
         linebuffer: true,
