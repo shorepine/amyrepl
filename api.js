@@ -157,6 +157,7 @@ export async function loadMicroPython(options) {
                 "number",
                 ["pointer", "number", "pointer"],
                 [buf, len, value],
+                { async: true },
             );
             Module._free(buf);
             const ret = proxy_convert_mp_to_js_obj_jsside_with_free(value);
@@ -166,7 +167,7 @@ export async function loadMicroPython(options) {
             return ret;
         },
         replInit() {
-            Module.ccall("mp_js_repl_init", "null", ["null"]);
+            Module.ccall("mp_js_repl_init", "null", ["null"], {async:true});
         },
         replProcessChar(chr) {
             return Module.ccall(
@@ -177,7 +178,7 @@ export async function loadMicroPython(options) {
             );
         },
         // Needed if the GC/asyncify is enabled.
-        async replProcessCharWithAsyncify(chr) {
+        replProcessCharWithAsyncify(chr) {
             return Module.ccall(
                 "mp_js_repl_process_char",
                 "number",
