@@ -9,8 +9,6 @@
     <script src="micropython.mjs" type="module"></script>
     <script type="text/javascript" src="enable-threads.js"></script>
     <script type="text/javascript" src="amy.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
     <script language="javascript">
       var amy_play_message = null;
@@ -55,11 +53,19 @@
         repl_started = true;
       }
 
+      async function start_repl_and_audio() {
+        // Don't run this twice
+        if(repl_started) return;
+        // Start the audio worklet (miniaudio)
+        await amy_live_start();
+        await start_repl();
+      }
+
       async function resetAMY() {
         if(repl_started) {
           await mp.runPythonAsync('amy.reset()\n');
         }
-      }
+      }      
 
       async function runCodeBlock(index) {
         if(!repl_started) await start_repl_and_audio();
@@ -70,22 +76,7 @@
           await mp.runPythonAsync(py);
         }
       }
-
-      // Called from first click anywhere on DOM
-      async function start_repl_and_audio() {
-        // Don't run this twice
-        if(repl_started) return;
-        // Start the audio worklet (miniaudio)
-        await amy_live_start();
-        await start_repl();
-      }
-    
     </script>
-    <style>
-      .notebookcell {
-        .row .px-5 .mt-5 .bg-light .bg-gradient
-      }
-    </style>
   </head>
   <body>
     <script type="module">
@@ -103,6 +94,9 @@
       <h1>
         <A HREF="https://github.com/shorepine/amy">AMY</A> Notebook demo for DAn
       </h1>
+
+
+
 
 <!-- Put your notebook content here --> 
 
@@ -142,8 +136,6 @@ amy.send(osc=0, wave=amy.PCM, patch=1, time=1000, vel=5)
         <p><a href="/amyrepl">If you want to use a more normal Python REPL, do that here</a> but the idea of this
           is to make a template for a future blog post / tutorial for AMY that is interactive like this. 
       </div>
-
-
     </div>
 
 <!-- End your notebook content -->
