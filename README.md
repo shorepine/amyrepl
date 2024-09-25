@@ -10,7 +10,7 @@ That creates `amy.js` and `amy.wasm` and `amy.aw.js` in `amy/docs`, copy that he
 
 move / put this on line 16 of `amy.js` - still figuring out why emscripten puts this in the wrong spot
 
-`globalThis.AudioWorkletModule = amy_module;`
+`globalThis.AudioWorkletModule = amyModule;`
 
 eg.
 
@@ -21,7 +21,7 @@ eg.
 );
 })();
 
-globalThis.AudioWorkletModule = amy_module;
+globalThis.AudioWorkletModule = amyModule;
 if (typeof exports === 'object' && typeof module === 'object')
   module.exports = amyModule;
 ...

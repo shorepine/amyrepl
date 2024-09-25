@@ -62,6 +62,7 @@
       }
 
       async function runCodeBlock(index) {
+        if(!repl_started) await start_repl_and_audio();
         if(repl_started) {
           var py = editors[index].getValue();
           console.log(py)
@@ -114,9 +115,7 @@
 amy.send(osc=0,freq=220,vel=1)
 amy.send(osc=1,freq=440,vel=1)
         </div>
-        <p>When you hit play, you should hear two sine waves. (You may have to click twice the first time
-          you're on this page, to turn on the audio. It's an anti-autoplay feature your browser has.) 
-
+        <p>When you hit play, you should hear two sine waves. 
         <p>Try changing the frequency and running again.
       </div>
 
@@ -168,9 +167,9 @@ amy.send(osc=0, wave=amy.PCM, patch=1, time=1000, vel=5)
           <section class="input">
             <div><textarea id="code-${index}" name="code-${index}"></textarea></div> 
           </section>
-          <div class="align-self-center"> 
+          <div class="align-self-center my-3"> 
             <button type="button" class="btn btn-sm btn-success" onclick="runCodeBlock(${index})">►</button> 
-            <button type="button" class="btn btn-sm btn-danger" onclick="resetAMY()">◻︎</button> 
+            <button type="button" class="btn btn-sm btn-danger" onclick="resetAMY()">◼︎</button> 
           </div>
         </div>`;
 
@@ -188,9 +187,6 @@ amy.send(osc=0, wave=amy.PCM, patch=1, time=1000, vel=5)
         editor.setValue(code.trim()); 
         editors.push(editor);
       }
-
-        // On click anywhere, start audio and the REPL, after audio is started (otherwise python gets confused about AMY)
-      document.body.addEventListener('click', start_repl_and_audio, true); 
 
       // Replace the editor divs with live editors
       document.querySelectorAll('.editor').forEach(function (element, index) {
